@@ -277,7 +277,7 @@ def test_sie_cheb() {
 }
 
 // x=4 周辺の値も指定してみる.
-def test_sie_cheb2() {
+def test_sie_cheb2(BoundaryType) {
     load("input-ode.rr");  // change here, ODE data.
     Op = ODE * dx; // change here, dx will not be needed in most cases. Rank 11 に修正済み
     X = x;
@@ -305,9 +305,11 @@ def test_sie_cheb2() {
     Q_list = [1679/25000, 13097/200000, 16183/250000, 12663/200000, 30907/500000, 
               60477/1000000, 59611/1000000, 58257/1000000, 719/12500, 55971/1000000];
 
-    // 点を加える.
-    P_list = append(P_list,[4]);
-    Q_list = append(Q_list,[number_float_to_rational(0.000214)]);
+    // Adding data at the right most points. 点を加える. // change here
+    if (BoundaryType) {
+      P_list = append(P_list,[4]);
+      Q_list = append(Q_list,[number_float_to_rational(0.000214)]);
+    }
     
     Fname_out = "sie_method_b_data_cheb.py";
     
@@ -324,7 +326,8 @@ endmodule;
 tk_sie_b.verbose(1);;
 T=time();;
 //tk_sie_b.test_sie_cheb();
-tk_sie_b.test_sie_cheb2();
+//tk_sie_b.test_sie_cheb2(0);  // change here. 
+tk_sie_b.test_sie_cheb2(1);  // change here. 
 printf("Execution CPU time=%a\n",time()[0]-T[0]);;
 
 
