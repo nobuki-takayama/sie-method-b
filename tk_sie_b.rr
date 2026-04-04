@@ -1,0 +1,331 @@
+/*
+  Risa/Asir package for Sparse interpolation/extrapolation(sie) B method.
+  This program contains Japanese comments; please use machine translation to translate them into your preferred language if necessary.
+
+  test_sie_cheb2() is a sample input function.  Parts of the input data or simulation data that need to be changed are marked with the comment "change here".
+  test_sie_cheb2(); がサンプル入力です.  入力データやシミュレーションデータを変更すべき部分には change here というコメントが入っています.
+
+  OpenXM/bin/ox_cpp may not support large input files like input-ode.rr.
+  If `load("input-ode.rr");` hangs, please remove this ox_cpp file.
+  OpenXM/bin/ox_cpp が巨大な入力 input-ode.rr に対応していない場合があります.
+  load("input-ode.rr"); でハングする場合はこの  ox_cpp を消して下さい.
+
+  Running this program generates the Python input data file sie_method_b_data_cheb.py. 
+  The program ex_2026_04_01_E_solve_sie_gpu.py solves the least square problem and graphs the solution.
+  このプログラムを実行すると、python 用の入力データ sie_method_b_data_cheb.py が生成されます.
+   ex_2026_04_01_E_solve_sie_gpu.py が least square problem を解いて解をグラフ表示します.
+*/
+
+import("names.rr");;
+
+module tk_sie_b;
+localf apply_op, export_sie_data_cheb, verbose, test_sie_cheb;
+localf cheb_data, trapezoid_data;
+localf test_sie_cheb2;
+
+static Verbose;
+
+def verbose(V) {
+  Verbose=V;
+}
+
+// 微分作用素 Op を基底関数 BaseF に適用する汎用関数.
+def apply_op(Op, BaseF, X, Dx) {
+    if (type(Op) <= 1) return Op * BaseF;
+    Ord_orig = dp_ord();
+    dp_ord(0); 
+    Vlist = base_set_union(vars(Op), [Dx, X]);
+    Vlist = cons(Dx, base_set_minus(Vlist, [Dx]));
+    Dist = dp_ptod(Op, Vlist);
+    Ans = 0;
+    while (Dist != 0) {
+        Hc = dp_hc(Dist);
+        E = dp_etov(dp_ht(Dist));
+        Deg_dx = E[0]; 
+        E[0] = 0; 
+        CoefF = Hc * dp_dtop(dp_vtoe(E), Vlist); 
+        Deriv = BaseF;
+        for (K = 0; K < Deg_dx; K++) {
+            Deriv = diff(Deriv, X);
+        }
+        Ans = Ans + CoefF * Deriv;
+        Dist = dp_rest(Dist);
+    }
+    dp_ord(Ord_orig);
+    return Ans;
+}
+
+// 任意の積分分点 T_list と重み W_list を受け取るエクスポート関数
+/* 
+ assoc(P_list,Q_list) が たとえば Monte-Carlo 法による
+ 計算点とその値 (p_i,q_i) のリスト
+*/
+def export_sie_data_cheb(Fname, Op, Basis, P_list, Q_list, T_list, W_list, X, Dx) {
+    Prec_val = 30;
+    if (type(getopt(prec)) >= 0) {
+        Prec_val = getopt(prec);
+    }
+    OrigPrec = setprec();
+    setprec(Prec_val);
+
+    Fp = open_file(Fname, "w");
+    Num_basis = length(Basis);
+    N_points = length(T_list);
+    
+    // 1. 各基底に微分作用素を適用 (記号的計算)
+    Op_applied = newvect(Num_basis);
+    for (I = 0; I < Num_basis; I++) {
+        Op_applied[I] = apply_op(Op, Basis[I], X, Dx);
+        if (Verbose) printf("Applying operator: %a/%a\n", I+1, Num_basis);
+    }
+    
+    // 2. 積分分点 T_j と重み W_j の出力
+    fprintf(Fp, "T_j = [");
+    for (J = 0; J < N_points; J++) {
+        fprintf(Fp, "%a", number_eval(T_list[J]));
+        if (J < N_points - 1) fprintf(Fp, ", ");
+    }
+    fprintf(Fp, "]\n");
+
+    fprintf(Fp, "W_j = [");
+    for (J = 0; J < N_points; J++) {
+        fprintf(Fp, "%a", number_eval(W_list[J]));
+        if (J < N_points - 1) fprintf(Fp, ", ");
+    }
+    fprintf(Fp, "]\n");
+
+    // 3. (L e_k)(t_j) の評価と出力
+    fprintf(Fp, "L_ek_Tj = [\n");
+    for (K = 0; K < Num_basis; K++) {
+        if (Verbose) printf("Computing (L e_k)(t_j), k=%a\n",K);
+        fprintf(Fp, "  [");
+        for (J = 0; J < N_points; J++) {
+            Val = base_replace_n(Op_applied[K], [[X, T_list[J]]]);
+            fprintf(Fp, "%a", number_eval(Val));
+            if (J < N_points - 1) fprintf(Fp, ", ");
+        }
+        fprintf(Fp, "]");
+        if (K < Num_basis - 1) fprintf(Fp, ",\n");
+    }
+    fprintf(Fp, "\n]\n");
+
+    // 4. 制約点での評価 E_k(P_i) の出力
+    fprintf(Fp, "E_k_Pi = [\n");
+    for (K = 0; K < Num_basis; K++) {
+        fprintf(Fp, "  [");
+        for (I = 0; I < length(P_list); I++) {
+            Val = base_replace_n(Basis[K], [[X, P_list[I]]]);
+            fprintf(Fp, "%a", number_eval(Val));
+            if (I < length(P_list) - 1) fprintf(Fp, ", ");
+        }
+        fprintf(Fp, "]");
+        if (K < Num_basis - 1) fprintf(Fp, ",\n");
+    }
+    fprintf(Fp, "\n]\n");
+
+    // 5. グラフ描画用: 積分点での基底関数の評価 E_k(T_j) の出力
+    fprintf(Fp, "E_k_Tj = [\n");
+    for (K = 0; K < Num_basis; K++) {
+        fprintf(Fp, "  [");
+        for (J = 0; J < N_points; J++) {
+            Val = base_replace_n(Basis[K], [[X, T_list[J]]]);
+            fprintf(Fp, "%a", number_eval(Val));
+            if (J < N_points - 1) fprintf(Fp, ", ");
+        }
+        fprintf(Fp, "]");
+        if (K < Num_basis - 1) fprintf(Fp, ",\n");
+    }
+    fprintf(Fp, "\n]\n");
+
+    // 6. 制約点と値の出力
+    fprintf(Fp, "P_i = [");
+    for (I = 0; I < length(P_list); I++) {
+        fprintf(Fp, "%a", number_eval(P_list[I]));
+        if (I < length(P_list) - 1) fprintf(Fp, ", ");
+    }
+    fprintf(Fp, "]\n");
+
+    fprintf(Fp, "Q_i = [");
+    for (I = 0; I < length(Q_list); I++) {
+        fprintf(Fp, "%a", number_eval(Q_list[I]));
+        if (I < length(Q_list) - 1) fprintf(Fp, ", ");
+    }
+    fprintf(Fp, "]\n");
+
+    close_file(Fp);
+    setprec(OrigPrec);
+}
+
+// チェビシェフ基底とガウス求積法のデータを生成する汎用関数
+// 戻り値: 要素が3つのリスト [Basis, T_list, W_list]
+// オプション引数: prec (超越関数評価時の浮動小数精度, 既定値30)
+def cheb_data(T_s, T_e, Num_basis, N, X) {
+    // 1. チェビシェフ多項式基底の生成 (区間 [T_s, T_e] にシフト)
+    S = (2 * X - (T_s + T_e)) / (T_e - T_s);
+    Basis_vec = newvect(Num_basis);
+    Basis_vec[0] = 1;
+    if (Num_basis > 1) {
+        Basis_vec[1] = S;
+    }
+    for (J = 2; J < Num_basis; J++) {
+        Basis_vec[J] = 2 * S * Basis_vec[J-1] - Basis_vec[J-2];
+    }
+    Basis = vtol(Basis_vec);
+
+    // 2. チェビシェフ・ガウス求積法の分点と重みの生成
+    T_vec = newvect(N);
+    W_vec = newvect(N);
+
+    // 精度のオプション処理
+    Prec_val = 30;
+    if (type(getopt(prec)) >= 0) {
+        Prec_val = getopt(prec);
+    }
+    OrigPrec = setprec();
+    setprec(Prec_val);
+
+    for (J = 0; J < N; J++) {
+        Arg = @pi * (2 * J + 1) / (2 * N);
+        
+        S_val = number_eval(cos(Arg));
+        W_raw = number_eval((@pi / N) * sin(Arg));
+        
+        T_val = (T_e - T_s)/2 * S_val + (T_s + T_e)/2;
+        W_val = W_raw * (T_e - T_s)/2;
+        
+        T_vec[J] = number_float_to_rational(T_val);
+        W_vec[J] = number_float_to_rational(W_val);
+    }
+    
+    setprec(OrigPrec);
+
+    T_list = vtol(T_vec);
+    W_list = vtol(W_vec);
+
+    return [Basis, T_list, W_list];
+}
+
+// 単項式基底と台形公式のデータを生成する汎用関数
+// Center: 基底の中心。 (X - Center)^J を生成する
+// 戻り値: 要素が3つのリスト [Basis, T_list, W_list]
+def trapezoid_data(T_s, T_e, Num_basis, N, X, Center) {
+    // 1. 単項式基底の生成
+    Basis_vec = newvect(Num_basis);
+    for (J = 0; J < Num_basis; J++) {
+        Basis_vec[J] = (X - Center)^J;
+    }
+    Basis = vtol(Basis_vec);
+
+    // 2. 台形公式の分点と重みの生成 (有理数のまま厳密に計算)
+    H = (T_e - T_s) / N;
+    
+    // 台形公式は両端を含むため要素数は N+1 となる
+    T_vec = newvect(N + 1);
+    W_vec = newvect(N + 1);
+
+    for (J = 0; J <= N; J++) {
+        T_vec[J] = T_s + J * H;
+        if ((J == 0) || (J == N)) {
+            W_vec[J] = H / 2;
+        } else {
+            W_vec[J] = H;
+        }
+    }
+    
+    T_list = vtol(T_vec);
+    W_list = vtol(W_vec);
+
+    return [Basis, T_list, W_list];
+}
+
+// チェビシェフ基底とガウス求積法を用いた Target B の実行
+def test_sie_cheb() {
+    load("input-ode.rr");  // change here, ODE data.
+    Op = ODE * dx; // change here, Rank 11 に修正済み
+    X = x;
+    Dx = dx;
+
+    // change here (the following 4 lines).
+    T_s = 38/10;  // integration domain, Use rational number.
+    T_e = 4;
+    N = 200;
+    Num_basis = 30;
+    
+    // チェビシェフ求積データの一括取得 (オプションで精度指定も可能)
+    [Basis,T_list,W_list] = cheb_data(T_s, T_e, Num_basis, N, X | prec=30);
+    
+    // Change here (the following block). 
+    // Reference points P_list and simulation values Q_list should be given by rational numbers.
+    // 2. 参照点 (シミュレーション点)
+    Num_p = 10;
+    P_vec = newvect(Num_p);
+    for (I = 0; I < Num_p; I++) {
+        P_vec[I] = 38/10 + I/1000;
+    }
+    P_list = vtol(P_vec);
+    
+    Q_list = [1679/25000, 13097/200000, 16183/250000, 12663/200000, 30907/500000, 
+              60477/1000000, 59611/1000000, 58257/1000000, 719/12500, 55971/1000000];
+    
+    Fname_out = "sie_method_b_data_cheb.py";
+    
+    T_start = time();
+    // エクスポート時にも prec=30 オプションを指定
+    export_sie_data_cheb(Fname_out, Op, Basis, P_list, Q_list, T_list, W_list, X, Dx | prec=30);
+    printf("Execution CPU time=%a\n", time()[0] - T_start[0]);
+    printf("Exported Chebyshev Target B data to %a\n", Fname_out);
+}
+
+// x=4 周辺の値も指定してみる.
+def test_sie_cheb2() {
+    load("input-ode.rr");  // change here, ODE data.
+    Op = ODE * dx; // change here, dx will not be needed in most cases. Rank 11 に修正済み
+    X = x;
+    Dx = dx;
+
+    // change here (the following 4 lines).
+    T_s = 38/10;  // domain of integrals, they must be rational numbers.
+    T_e = 4;
+    N = 200;
+    Num_basis = 30;
+    
+    // チェビシェフ求積データの一括取得 (オプションで精度指定も可能)
+    [Basis,T_list,W_list] = cheb_data(T_s, T_e, Num_basis, N, X | prec=30);
+    
+    // Change here (the following block). 
+    // Reference points P_list and simulation values Q_list should be given by rational numbers.
+    // 2. 参照点 (シミュレーション点)
+    Num_p = 10;
+    P_vec = newvect(Num_p);
+    for (I = 0; I < Num_p; I++) {
+        P_vec[I] = 38/10 + I/1000;
+    }
+    P_list = vtol(P_vec);
+    
+    Q_list = [1679/25000, 13097/200000, 16183/250000, 12663/200000, 30907/500000, 
+              60477/1000000, 59611/1000000, 58257/1000000, 719/12500, 55971/1000000];
+
+    // 点を加える.
+    P_list = append(P_list,[4]);
+    Q_list = append(Q_list,[number_float_to_rational(0.000214)]);
+    
+    Fname_out = "sie_method_b_data_cheb.py";
+    
+    T_start = time();
+    // エクスポート時にも prec=30 オプションを指定
+    export_sie_data_cheb(Fname_out, Op, Basis, P_list, Q_list, T_list, W_list, X, Dx | prec=30);
+    printf("Execution CPU time=%a\n", time()[0] - T_start[0]);
+    printf("Exported Chebyshev Target B data to %a\n", Fname_out);
+}
+
+endmodule;
+
+// Sample input 
+tk_sie_b.verbose(1);;
+T=time();;
+//tk_sie_b.test_sie_cheb();
+tk_sie_b.test_sie_cheb2();
+printf("Execution CPU time=%a\n",time()[0]-T[0]);;
+
+
+end;;

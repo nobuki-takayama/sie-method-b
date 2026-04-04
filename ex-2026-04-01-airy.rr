@@ -1,0 +1,29 @@
+import("tk_sie_b.rr");;
+
+def run_airy_example() {
+    Op = dx^2 - x;
+    X = x;
+    Dx = dx;
+    
+    T_s = -20;
+    T_e = 6;
+    Num_basis = 80;
+    N = 260;
+    
+    // チェビシェフ基底と求積データの取得
+    [Basis,T_list,W_list] = tk_sie_b.cheb_data(T_s, T_e, Num_basis, N, X | prec=30);
+    
+    // 境界条件 (t=-20, t=6 での Ai(t) の近似値)
+    P_list = [-20, 6];
+    Q_list = [-176/1000, 995/100000000];
+    
+    Fname = "airy_sie_data.py";
+    
+    // Python向けデータのエクスポート
+    tk_sie_b.export_sie_data_cheb(Fname, Op, Basis, P_list, Q_list, T_list, W_list, X, Dx | prec=30);
+    printf("Output written to %a\n", Fname);
+}
+
+run_airy_example();;
+
+end;;
