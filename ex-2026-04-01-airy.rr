@@ -1,3 +1,4 @@
+No_Demo_of_tk_sie_b=1;;
 import("tk_sie_b.rr");;
 
 def run_airy_example() {
