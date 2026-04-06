@@ -1,8 +1,7 @@
 # sie-method-b
 Implementation of the Sparse Interpolation/Extrapolation (SIE) method B.
 
-We implemented "SIE Method B" (Sparse Interpolation/Extrapolation Method B)
-or "HIE Method B" (Holonomic sparse Interpolation/Extrapolation Method B)
+We implemented "SIE Method B" (Holonomic Sparse Interpolation/Extrapolation Method B, or it is abbreviated "HIE Method B")
 [https://arxiv.org/abs/2111.10947]
 on several computer algebra systems  with the assistance
 of  Gemini 3.1 Pro ([Risa/Asir gem v7](https://gemini.google.com/gem/1-OoG766iQlM7YbW9hAS1aYMebKOpGEKc?usp=sharing)).
@@ -48,8 +47,8 @@ reduce development time.
 
 
 ## Summary in Japanese.
-「SIE Method B」（スパース補間／外挿法B）
-または「HIE Method B」（ホロノミック スパース補間／外挿法B）
+「SIE Method B」（ホロノミック スパース補間／外挿法B,
+「HIE Method B」と略す時もある)
 [https://arxiv.org/abs/2111.10947]
 を、Gemini 3.1 Proの支援を受けて([Risa/Asir gem v7](https://gemini.google.com/gem/1-OoG766iQlM7YbW9hAS1aYMebKOpGEKc?usp=sharing))、複数の数式処理システムに実装しました。
 Gemini 3.1 Proは、数学とプログラミングに優れたシステムです。
