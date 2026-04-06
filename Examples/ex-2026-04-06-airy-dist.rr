@@ -1,0 +1,88 @@
+/*
+ Airy like distribution exp(t*x-x^3) on [0,\infty)
+Ref: defusing6.tex introduction.
+
+*/
+import("tk_sie_b.rr");;
+
+def run_airy_dist() {
+//Prog: h-mle/Prog/ex1b.rr
+/*
+[2602] F;
+exp(t*x-t^3)
+[2603] poly_dact(3*dx^2-x,F,[x]);
+-exp(t*x-t^3)*x+3*exp(t*x-t^3)*t^2
+[2604] poly_dact(dt,F,[t]);
+exp(t*x-t^3)*x-3*exp(t*x-t^3)*t^2
+
+[2605] poly_dact(3*dx^2-x,F,[x])+poly_dact(dt,F,[t]);
+0
+
+(3*dx^2-x)F=-dt F
+*/
+    Op = poly_dmul(dx,3*dx^2 - x,[x]);
+    X = x;
+    Dx = dx;
+    
+    T_s = -20;
+    T_e = 6;
+//    Num_basis = 80;  // oscillation がおきる. どうして? N=260 はOK?
+//    N = 260;
+//  これもおかしい. 分点の数と basis の関係は oscillation に関係ない. airy-like-fake.png
+//    Num_basis = 80;   
+//    N=80;
+
+    Num_basis = 30;   // 正しい解. どうして?  cf. gem-*  4/6,  airy-like.png
+    //N = 200;
+    N=30;
+
+    
+    // チェビシェフ基底と求積データの取得
+    [Basis,T_list,W_list] = tk_sie_b.cheb_data(T_s, T_e, Num_basis, N, X | prec=30);
+    
+    /* 境界条件 (t=-20, t=6 での近似値)
+      Rationalize[NIntegrate[Exp[-20*x-x^3],{x,0,Infinity}]]
+        0.0499628
+      Rationalize[NIntegrate[Exp[6*x-x^3],{x,0,Infinity}]]
+        249.532
+
+      参考値
+      Rationalize[NIntegrate[Exp[-5*x-x^3],{x,0,Infinity}]]
+        0.192809
+      Rationalize[NIntegrate[Exp[-4*x-x^3],{x,0,Infinity}]]
+        = 0.235042
+        =117521/500000
+
+    */
+
+    /* 以下は使わず.
+      Airy exp(x^3/3-t*x)
+
+      Rationalize[NIntegrate[Exp[x^3/3-(-20)*x],{x,0,Infinity}]]
+         overflow
+      Rationalize[NIntegrate[Exp[x^3/3-6*x],{x,0,Infinity}]]
+         overflow
+
+      wikipedia Airy
+      Rationalize[NIntegrate[Cos[x^3/3-(-20)*x],{x,0,Infinity}]]
+         -1.22347*10^(-11)  fail to converge
+      Rationalize[NIntegrate[Cos[x^3/3-6*x],{x,0,Infinity}]]
+         -1.03404
+    */
+    /*
+    P_list = [-20,6];
+    Q_list = [124907/2500000, 62383/250];
+    */
+    P_list = [-20,-4];
+    Q_list = [124907/2500000, 117521/500000];
+    
+    Fname = "airy_dist_sie_data.py";
+    
+    // Python向けデータのエクスポート
+    tk_sie_b.export_sie_data_cheb(Fname, Op, Basis, P_list, Q_list, T_list, W_list, X, Dx | prec=30);
+    printf("Output written to %a\n", Fname);
+}
+
+run_airy_dist();;
+
+end;;

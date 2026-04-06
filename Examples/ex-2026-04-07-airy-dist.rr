@@ -1,0 +1,76 @@
+/*
+ Airy like distribution exp(t*x-x^3) on [0,\infty)
+ Parasitic solutions are suppressed by providing a large number of data points.
+ (Parasitic solution を 多くの data points を与えることで抑制する.)
+ 3 data points suppress the parasitic solution.
+
+Ref: defusing6.tex introduction.
+
+*/
+No_demo_tk_sie_b=1;;  // tk_sie_b.rr のデモプログラムを動かさない.
+import("tk_sie_b.rr");;
+tk_sie_b.verbose(0);;
+
+def run_airy_dist() {
+//Prog: h-mle/Prog/ex1b.rr
+/*
+[2602] F;
+exp(t*x-t^3)
+[2603] poly_dact(3*dx^2-x,F,[x]);
+-exp(t*x-t^3)*x+3*exp(t*x-t^3)*t^2
+[2604] poly_dact(dt,F,[t]);
+exp(t*x-t^3)*x-3*exp(t*x-t^3)*t^2
+
+[2605] poly_dact(3*dx^2-x,F,[x])+poly_dact(dt,F,[t]);
+0
+
+(3*dx^2-x)F=-dt F
+*/
+    Op = poly_dmul(dx,3*dx^2 - x,[x]);
+    X = x;
+    Dx = dx;
+    
+    T_s = -20;
+    T_e = 6;
+//    Num_basis = 80;  // oscillation がおきる. どうして? N=260 はOK?
+//    N = 260;
+//  これもおかしい. 分点の数と basis の関係は oscillation に関係ない. airy-like-fake.png
+    Num_basis = 80;   
+    N=80;
+
+    
+    // チェビシェフ基底と求積データの取得
+    [Basis,T_list,W_list] = tk_sie_b.cheb_data(T_s, T_e, Num_basis, N, X | prec=30);
+    
+    /* 多くの一般化境界条件 ([-20,6] での近似値)
+      pList=Table[t,{t,-20,6,1}]
+      qList=Table[NIntegrate[Exp[t*x-x^3],{x,0,Infinity}],{t,-20,6,1}]
+
+ 出力.
+{-20, -19, -18, -17, -16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6}
+
+ {0.0499628, 0.0525859, 0.055499, 0.0587525, 0.0624097, 0.0665502, 0.0712756, 0.0767184, 0.0830532, 0.0905158, 0.0994313,  0.110259, 0.12367, 0.140673, 0.162853, 0.192809, 0.235042, 0.297832, 0.397505, 0.56889, 0.89298, 1.57661, 3.20284, 7.59131, 21.0362, 67.6495, 249.532}
+    */
+    P_list_full = [-20, -19, -18, -17, -16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6];
+    Q_list_full = map(number_float_to_rational,[0.0499628, 0.0525859, 0.055499, 0.0587525, 0.0624097, 0.0665502, 0.0712756, 0.0767184, 0.0830532, 0.0905158, 0.0994313,  0.110259, 0.12367, 0.140673, 0.162853, 0.192809, 0.235042, 0.297832, 0.397505, 0.56889, 0.89298, 1.57661, 3.20284, 7.59131, 21.0362, 67.6495, 249.532]);
+
+    P_list=[]; Q_list=[];
+    Step =13;  // change here
+    printf("Num_basis=%a, Step=%a\n",Num_basis,Step);
+    for (I=0; I<length(P_list_full); I += Step) {
+      P_list=cons(P_list_full[I],P_list);
+      Q_list=cons(Q_list_full[I],Q_list);
+    }
+    P_list=reverse(P_list); Q_list=reverse(Q_list);
+    printf("Number of data points=%a\n", length(P_list));
+    
+    Fname = "airy_dist_sie_data.py";
+    
+    // Python向けデータのエクスポート
+    tk_sie_b.export_sie_data_cheb(Fname, Op, Basis, P_list, Q_list, T_list, W_list, X, Dx | prec=30);
+    printf("Output written to %a\n", Fname);
+}
+
+run_airy_dist();;
+
+end;;

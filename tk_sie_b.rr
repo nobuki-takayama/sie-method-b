@@ -322,11 +322,13 @@ def test_sie_cheb2(BoundaryType) {
 
 endmodule;
 
+if (No_Demo_of_tk_sie_b) end; else ;
+
 // Sample input 
 tk_sie_b.verbose(1);;
 T=time();;
 //tk_sie_b.test_sie_cheb();
-//tk_sie_b.test_sie_cheb2(0);  // change here. 
+//tk_sie_b.test_sie_cheb2(0);  // change here.
 tk_sie_b.test_sie_cheb2(1);  // change here. 
 printf("Execution CPU time=%a\n",time()[0]-T[0]);;
 
