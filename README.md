@@ -1,5 +1,5 @@
 # sie-method-b
-Implementation of the Sparse Interpolation/Extrapolation (SIE) method B.
+Implementation of the Holonomic Sparse Interpolation/Extrapolation (SIE) method B.
 
 We implemented "SIE Method B" (Holonomic Sparse Interpolation/Extrapolation Method B, or it is abbreviated "HIE Method B")
 [https://arxiv.org/abs/2111.10947]
