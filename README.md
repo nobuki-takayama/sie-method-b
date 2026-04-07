@@ -17,6 +17,7 @@ reduce development time.
   input-ode.rr is an ODE data. Start Risa/Asir and
  ```
   load("tk_sie_b.rr");  
+  tk_sie_b.test_sie_cheb2(1);  
   quit();  // quit Risa/Asir
   python ex_2026_04_01_E_solve_sie_gpu.py 
  ```

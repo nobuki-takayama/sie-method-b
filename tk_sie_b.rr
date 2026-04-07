@@ -20,7 +20,7 @@
 
 import("names.rr");;
 
-//No_Demo_of_tk_sie_b=1;;  // Do not execute demo function test_sie_cheb2.
+No_Demo_of_tk_sie_b=1;;  // Do not execute demo function test_sie_cheb2.
 
 module tk_sie_b;
 localf apply_op, export_sie_data_cheb, verbose, test_sie_cheb;
