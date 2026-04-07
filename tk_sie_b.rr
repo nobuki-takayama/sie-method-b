@@ -14,9 +14,13 @@
   The program ex_2026_04_01_E_solve_sie_gpu.py solves the least square problem and graphs the solution.
   このプログラムを実行すると、python 用の入力データ sie_method_b_data_cheb.py が生成されます.
    ex_2026_04_01_E_solve_sie_gpu.py が least square problem を解いて解をグラフ表示します.
+
+//Prog: the original code is under num-ht6/Data
 */
 
 import("names.rr");;
+
+//No_Demo_of_tk_sie_b=1;;  // Do not execute demo function test_sie_cheb2.
 
 module tk_sie_b;
 localf apply_op, export_sie_data_cheb, verbose, test_sie_cheb;
