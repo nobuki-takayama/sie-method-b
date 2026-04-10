@@ -5,10 +5,6 @@
   test_sie_cheb2() is a sample input function.  Parts of the input data or simulation data that need to be changed are marked with the comment "change here".
   test_sie_cheb2(); がサンプル入力です.  入力データやシミュレーションデータを変更すべき部分には change here というコメントが入っています.
 
-  OpenXM/bin/ox_cpp may not support large input files like input-ode.rr.
-  If `load("input-ode.rr");` hangs, please remove this ox_cpp file.
-  OpenXM/bin/ox_cpp が巨大な入力 input-ode.rr に対応していない場合があります.
-  load("input-ode.rr"); でハングする場合はこの  ox_cpp を消して下さい.
 
   Running this program generates the Python input data file sie_method_b_data_cheb.py. 
   The program ex_2026_04_01_E_solve_sie_gpu.py solves the least square problem and graphs the solution.
@@ -22,10 +18,27 @@ import("names.rr");;
 
 No_Demo_of_tk_sie_b=1;;  // Do not execute demo function test_sie_cheb2.
 
+
+#define load_file(Fname) eval_str("if(1){"+util_asir_file_to_string(Fname)+"}else{}");
+  /*
+  OpenXM/bin/ox_cpp may not support large input files like input-ode.rr.
+  If `load("input-ode.rr");` hangs, please remove this ox_cpp file.
+  OpenXM/bin/ox_cpp が巨大な入力 input-ode.rr に対応していない場合があります.
+  load("input-ode.rr"); でハングする場合はこの  ox_cpp を消して下さい.
+
+  ここではその代わりに load_file macroを使う. #define などがあるとエラー.
+  eval_str での定義はローカルになるので, 関数呼び出しでなく マクロ load_file を使う.
+  Since the definitions in `eval_str` is local, use the macro `load_file` instead of a function call.
+  
+*/
+
+
+
 module tk_sie_b;
 localf apply_op, export_sie_data_cheb, verbose, test_sie_cheb;
 localf cheb_data, trapezoid_data;
 localf test_sie_cheb2;
+localf load_file;
 
 static Verbose;
 
@@ -244,7 +257,8 @@ def trapezoid_data(T_s, T_e, Num_basis, N, X, Center) {
 
 // チェビシェフ基底とガウス求積法を用いた Target B の実行
 def test_sie_cheb() {
-    load("input-ode.rr");  // change here, ODE data.
+
+    load_file("input-ode.rr");  // change here, ODE data.
     Op = ODE * dx; // change here, Rank 11 に修正済み
     X = x;
     Dx = dx;
@@ -282,7 +296,7 @@ def test_sie_cheb() {
 
 // x=4 周辺の値も指定してみる.
 def test_sie_cheb2(BoundaryType) {
-    load("input-ode.rr");  // change here, ODE data.
+    load_file("input-ode.rr");  // change here, ODE data.
     Op = ODE * dx; // change here, dx will not be needed in most cases. Rank 11 に修正済み
     X = x;
     Dx = dx;
@@ -323,6 +337,7 @@ def test_sie_cheb2(BoundaryType) {
     printf("Execution CPU time=%a\n", time()[0] - T_start[0]);
     printf("Exported Chebyshev Target B data to %a\n", Fname_out);
 }
+
 
 endmodule;
 
