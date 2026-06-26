@@ -1303,6 +1303,10 @@ Plotting error, buffer_read: read failed
 sudo apt install libxm4
 ```
 
+Then, I can now display graphs on the X11 screen.
+![By Maple x11 fig](./Figs/Figure_maple_x11_fig.png)
+
+
 ---
 
 <span style="color:pink;">gemini</span>:
