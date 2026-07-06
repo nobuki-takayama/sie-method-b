@@ -15,7 +15,7 @@ except ImportError:
 # Risa/Asirのデータをインポート (setprec(30) で出力された高精度データ)
 import airy_sie_data as data
 
-def solve_sie_linear_robust(alpha=1.0, beta=1e10, gamma=1e-15):
+def solve_sie_linear_robust(alpha=1.0, beta=1e-10, gamma=1e-15):
     """
     線形最小二乗法 (lstsq) と列スケーリングを用いた最速・最高精度のソルバー
     """

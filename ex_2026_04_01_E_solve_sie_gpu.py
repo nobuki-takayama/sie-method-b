@@ -23,7 +23,7 @@ except ImportError:
 #import sie_method_b_data_targetB as data
 import sie_method_b_data_cheb as data
 
-def solve_sie_linear_robust(alpha=1.0, beta=1e10, gamma=1e-15):
+def solve_sie_linear_robust(alpha=1.0, beta=1e-10, gamma=1e-15):
     """
     線形最小二乗法 (lstsq) と列スケーリングを用いた最速・最高精度のソルバー
     """
