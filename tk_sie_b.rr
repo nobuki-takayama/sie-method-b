@@ -169,6 +169,18 @@ def export_sie_data_cheb(Fname, Op, Basis, P_list, Q_list, T_list, W_list, X, Dx
     }
     fprintf(Fp, "]\n");
 
+    if (type(getopt(ref_value))>0) {
+      Ref_value=getopt(ref_value);
+      fprintf(Fp,"Ref_value=[");
+      for (I=0; I<length(Ref_value); I++) {
+	fprintf(Fp,"[%a,%a]",number_eval(Ref_value[I][0]),number_eval(Ref_value[I][1]));
+	if (I < length(Ref_value)-1) fprintf(Fp,", ");
+      }
+      fprintf(Fp,"]\n");
+    }else{
+      fprintf(Fp,"Ref_value=[]\n");
+    }
+
     close_file(Fp);
     setprec(OrigPrec);
 }
